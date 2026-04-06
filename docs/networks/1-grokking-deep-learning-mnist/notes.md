@@ -1,4 +1,4 @@
-# Grokking-MNIST Notes
+# Deep Learning With Grokking By Andrew Trask. - MNIST Notes
 
 This network was built while working through the book *Grokking Deep Learning* by Andrew Trask. It is a fully connected network built from scratch using only NumPy — no PyTorch, TensorFlow, or high-level ML frameworks.
 
@@ -15,3 +15,4 @@ This network was built while working through the book *Grokking Deep Learning* b
 - Add a convolutional layer to improve accuracy further
 - Experiment with different learning rates and hidden layer sizes
 - Try training on Fashion-MNIST to see how well the same architecture generalises
+- Use data agumentation to create more vairation in images and more noise to stop overfitting on number size, location, resolution ...
