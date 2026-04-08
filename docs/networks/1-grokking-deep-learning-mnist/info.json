@@ -2,10 +2,10 @@
   "name": "1. Deep Learning With Grokking By Andrew Trask. - MNIST Notes",
   "description": "A fully connected network built from scratch using only NumPy while working through Grokking Deep Learning by Andrew Trask.",
   "architecture": "784 → 100 (tanh) → 10 (softmax)",
-  "techniques": ["Dropout regularisation", "Gradient descent", "Tanh + Softmax activations", "One-hot encoding", "MSE loss"],
+  "techniques": ["Mini-batch gradient descent", "Dropout regularisation", "Tanh + Softmax activations", "One-hot encoding", "MSE loss"],
   "results": {
-    "test_accuracy": "97.7%",
-    "summary": "97.7% test accuracy on 10,000 unseen images after 20 training iterations. Train/test gap of only ~0.3%."
+    "test_accuracy": "97.8%",
+    "summary": "97.8% test accuracy on 10,000 unseen images after 200 training iterations using mini-batch gradient descent (batch size 100, alpha 0.06). Train/test gap of only ~0.2%, indicating the network generalises well."
   },
   "layers": [
     { "weights": "weights_0_1", "bias": null, "activation": "tanh" },
