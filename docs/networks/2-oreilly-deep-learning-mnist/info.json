@@ -1,6 +1,6 @@
 {
-  "name": "2. Deep Learning With Keras (O'Reilly) - MNIST CNN",
-  "description": "A small convolutional neural network built with TensorFlow/Keras while following along with the O'Reilly Deep Learning book.",
+  "name": "2. Deep Learning With TensorFlow Keras (O'Reilly) - MNIST CNN Notes",
+  "description": "A convolutional neural network built with TensorFlow/Keras while following along with the O'Reilly Deep Learning book.",
   "architecture": "28×28×1 → Conv(64,3×3) → MaxPool → Conv(64,3×3) → MaxPool → Flatten → Dense(128, tanh) → Dropout → Dense(128, tanh) → Dropout → Dense(10, softmax)",
   "techniques": [
     "Convolutional + max-pooling layers",
