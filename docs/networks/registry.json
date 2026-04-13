@@ -10,5 +10,9 @@
   {
     "id": "3-oreilly-deep-learning-mnist",
     "path": "networks/3-oreilly-deep-learning-mnist/info.json"
+  },
+  {
+    "id": "4-yolo-convolutional-neural-network",
+    "path": "networks/4-yolo-convolutional-neural-network/info.json"
   }
 ]

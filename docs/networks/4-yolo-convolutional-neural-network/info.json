@@ -1,0 +1,24 @@
+{
+    "name": "4. COCO YOLO Convolutional Neural Network (Keras)",
+    "description": "A convolutional YOLO-style object detection network built from scratch with TensorFlow/Keras, trained on the MS COCO 2017 dataset. The model predicts bounding boxes and class probabilities on a 13×13 grid using a custom YOLO loss function. Despite a healthy loss curve, the model failed to learn spatial detection and defaulted to predicting 'person' in the centre of every image due to class imbalance in COCO.",
+    "architecture": "416×416×3 → Conv(64,3×3)+BN+ReLU → MaxPool → Conv(128,3×3)+BN+ReLU → MaxPool → Conv(256,3×3)+BN+ReLU → MaxPool → Conv(256,3×3)+BN+ReLU+Dropout(0.3) → MaxPool → Conv(512,3×3)+BN+ReLU+Dropout(0.3) → MaxPool → Conv(170,1×1,sigmoid) → 13×13×170",
+    "techniques": [
+      "YOLO grid-based object detection (S=13, B=2, C=80)",
+      "Custom YOLO loss with 5 weighted components (coord, size, objectness, no-object, class)",
+      "Batch Normalisation after every Conv layer",
+      "Dropout(0.3) regularisation",
+      "1×1 detection head preserving spatial structure",
+      "Adam optimiser (lr=0.0001)",
+      "EarlyStopping (patience=15)"
+    ],
+    "results": {
+      "test_accuracy": null,
+      "summary": "Training loss decreased from 0.0759 to 0.0369 over 24 epochs and val_loss tracked closely (final 0.0606), suggesting no overfitting. However the model failed to learn meaningful object detection — it predicted 'person' in the centre for nearly every image regardless of content. Root cause: class imbalance in COCO (~60% of images contain a person) meant the model found a shortcut that minimised loss without learning spatial features. No saved model — the weights were not useful."
+    },
+    "tfjs_model": null,
+    "notebook": "networks/4-yolo-convolutional-neural-network/notebook.ipynb",
+    "notes": "networks/4-yolo-convolutional-neural-network/notes.md",
+    "input_size": 519168,
+    "input_shape": [416, 416, 3],
+    "input_type": "coco-yolo"
+  }
