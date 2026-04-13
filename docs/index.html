@@ -46,7 +46,7 @@
             <h2>${info.name}</h2>
             <div class="arch">${info.architecture}</div>
             <div class="desc">${info.description || ''}</div>
-            <span class="accuracy">${info.results.test_accuracy || info.results.summary}</span>
+            <span class="accuracy">${info.results.test_accuracy || 'No result'}</span>
             <div class="techniques">${techniques}</div>
           `;
           grid.appendChild(card);
