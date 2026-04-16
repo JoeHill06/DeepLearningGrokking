@@ -22,6 +22,16 @@ env/
 *.npz
 data/
 
+# COCO dataset (images + annotations — too large for git)
+val2017/
+train2017/
+test2017/
+annotations/
+
+# Model weights
+*.pth
+*.pt
+
 # Book PDFs (copyright — keep local only)
 *.pdf
 
