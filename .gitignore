@@ -31,6 +31,7 @@ annotations/
 # Model weights
 *.pth
 *.pt
+*.onnx
 
 # Book PDFs (copyright — keep local only)
 *.pdf
