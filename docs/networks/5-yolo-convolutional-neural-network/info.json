@@ -1,0 +1,27 @@
+{
+    "name": "5. COCO YOLO Convolutional Neural Network (PyTorch)",
+    "description": "A YOLOv2-style object detection network built from scratch with PyTorch, trained on the MS COCO 2017 dataset. The model predicts bounding boxes and class probabilities on a 13×13 grid using a 26-layer backbone and a custom multi-component loss function. The model successfully learned to detect objects but overfit the training set — val loss bottomed at 4.21 on epoch 8 then rose to 5.97 by epoch 21 while train loss continued falling to 1.97.",
+    "architecture": "416×416×3 → Conv(32,3×3)+BN+SiLU → MaxPool(2×2) → Conv(64,3×3)+BN+SiLU → MaxPool(2×2) → Conv(128)+Conv(64)+Conv(128)+BN+SiLU → MaxPool(2×2) → Conv(256)+Conv(128)+Conv(256)+BN+SiLU → MaxPool(2×2) → Conv(512)×3+Conv(256)×2+BN+SiLU → MaxPool(2×2) → Conv(1024)×3+Conv(512)×2+BN+SiLU → Conv(1024,3×3)+BN+SiLU → Conv(1024,3×3)+BN+SiLU → Conv(170,1×1) → 13×13×170",
+    "techniques": [
+      "YOLOv2-style grid-based object detection (S=13, B=2, C=80)",
+      "Custom YOLO loss with 5 components (objectness, no-object, xy, wh, class)",
+      "Per-cell loss normalisation (sum/num_obj) to avoid 300× dilution from full-grid mean",
+      "BCEWithLogitsLoss for objectness/xy/class, MSE on log scale for width/height",
+      "Objectness bias initialised to −5.8",
+      "2 anchor boxes per cell matching COCO object aspect ratios",
+      "Batch Normalisation + SiLU activation on all backbone layers",
+      "Adam optimiser (lr=0.001)",
+      "MPS acceleration (Apple Silicon)"
+    ],
+    "results": {
+      "test_accuracy": null,
+      "summary": "The model learned real object detections — objectness confidence reached ~86% on object cells by epoch 8 and all loss components improved. Val loss fell from 6.26 to 4.21 over 8 epochs then rose to 5.97 by epoch 21 while train continued falling to 1.97. The classification term drove the divergence, indicating the model memorised class-appearance patterns rather than generalising. Root cause: no data augmentation, no weight decay, and no early stopping with a ~30M parameter model."
+    },
+    "tfjs_model": null,
+    "onnx_model": "networks/5-yolo-convolutional-neural-network/model.onnx",
+    "notebook": "networks/5-yolo-convolutional-neural-network/train.ipynb",
+    "notes": "networks/5-yolo-convolutional-neural-network/notes.md",
+    "input_size": 519168,
+    "input_shape": [416, 416, 3],
+    "input_type": "coco-yolo"
+  }

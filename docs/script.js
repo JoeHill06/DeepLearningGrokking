@@ -37,6 +37,13 @@
       }
       const tfjsModel = await tf.loadLayersModel(info.tfjs_model);
       initTryIt(info, { kind: 'cnn', model: tfjsModel });
+    } else if (info.input_type === 'coco-yolo') {
+      let session = null;
+      if (info.onnx_model) {
+        if (typeof ort === 'undefined') throw new Error('onnxruntime-web not loaded');
+        session = await ort.InferenceSession.create(info.onnx_model);
+      }
+      initYoloTryIt(info, session);
     }
   } catch (e) {
     console.error('Failed to set up try-it widget:', e);
@@ -199,6 +206,210 @@ function getPixels(canvas, size) {
   const p = new Float32Array(total);
   for (let i = 0; i < total; i++) p[i] = d[i * 4] / 255;
   return p;
+}
+
+// ── YOLO drag-and-drop try-it ─────────────────────────────────────────────
+const YOLO_GRID        = 13;
+const YOLO_CLASSES     = 80;
+const YOLO_ANCHORS     = [[0.28, 0.22], [0.38, 0.48]];
+const YOLO_CONF_THRESH = 0.5;
+const YOLO_NMS_THRESH  = 0.4;
+
+const COCO_CLASSES = [
+  'person','bicycle','car','motorcycle','airplane','bus','train','truck','boat',
+  'traffic light','fire hydrant','stop sign','parking meter','bench','bird','cat',
+  'dog','horse','sheep','cow','elephant','bear','zebra','giraffe','backpack',
+  'umbrella','handbag','tie','suitcase','frisbee','skis','snowboard','sports ball',
+  'kite','baseball bat','baseball glove','skateboard','surfboard','tennis racket',
+  'bottle','wine glass','cup','fork','knife','spoon','bowl','banana','apple',
+  'sandwich','orange','broccoli','carrot','hot dog','pizza','donut','cake','chair',
+  'couch','potted plant','bed','dining table','toilet','tv','laptop','mouse',
+  'remote','keyboard','cell phone','microwave','oven','toaster','sink',
+  'refrigerator','book','clock','vase','scissors','teddy bear','hair drier','toothbrush'
+];
+
+function yoloSigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+function yoloIOU(a, b) {
+  const ax1 = a.cx - a.w / 2, ay1 = a.cy - a.h / 2;
+  const ax2 = a.cx + a.w / 2, ay2 = a.cy + a.h / 2;
+  const bx1 = b.cx - b.w / 2, by1 = b.cy - b.h / 2;
+  const bx2 = b.cx + b.w / 2, by2 = b.cy + b.h / 2;
+  const inter = Math.max(0, Math.min(ax2, bx2) - Math.max(ax1, bx1))
+              * Math.max(0, Math.min(ay2, by2) - Math.max(ay1, by1));
+  return inter / (a.w * a.h + b.w * b.h - inter + 1e-6);
+}
+
+function yoloNMS(boxes) {
+  const sorted = [...boxes].sort((a, b) => b.conf - a.conf);
+  const kept = [], skip = new Set();
+  for (let i = 0; i < sorted.length; i++) {
+    if (skip.has(i)) continue;
+    kept.push(sorted[i]);
+    for (let j = i + 1; j < sorted.length; j++) {
+      if (!skip.has(j) && yoloIOU(sorted[i], sorted[j]) > YOLO_NMS_THRESH) skip.add(j);
+    }
+  }
+  return kept;
+}
+
+async function runYoloModel(img, session) {
+  // Resize to 416×416 and build NCHW Float32 tensor
+  const s = document.createElement('canvas');
+  s.width = s.height = 416;
+  s.getContext('2d').drawImage(img, 0, 0, 416, 416);
+  const px = s.getContext('2d').getImageData(0, 0, 416, 416).data;
+  const input = new Float32Array(3 * 416 * 416);
+  for (let i = 0; i < 416 * 416; i++) {
+    input[i]               = px[i * 4]     / 255;
+    input[416 * 416 + i]   = px[i * 4 + 1] / 255;
+    input[2 * 416 * 416 + i] = px[i * 4 + 2] / 255;
+  }
+
+  const inputName = session.inputNames[0];
+  const tensor = new ort.Tensor('float32', input, [1, 3, 416, 416]);
+  const result = await session.run({ [inputName]: tensor });
+  const out = Object.values(result)[0].data; // Float32, [1,170,13,13] flattened
+
+  // out index for [channel c, row r, col c]: c*13*13 + r*13 + col
+  const gs = YOLO_GRID * YOLO_GRID;
+  const boxes = [];
+
+  for (let a = 0; a < 2; a++) {
+    const [aw, ah] = YOLO_ANCHORS[a];
+    const off = a * 85;
+    for (let row = 0; row < YOLO_GRID; row++) {
+      for (let col = 0; col < YOLO_GRID; col++) {
+        const ci = row * YOLO_GRID + col;
+        const conf = yoloSigmoid(out[(off + 0) * gs + ci]);
+        if (conf < YOLO_CONF_THRESH) continue;
+
+        const px_ = yoloSigmoid(out[(off + 1) * gs + ci]);
+        const py_ = yoloSigmoid(out[(off + 2) * gs + ci]);
+        const pw  = out[(off + 3) * gs + ci];
+        const ph  = out[(off + 4) * gs + ci];
+
+        const cx = (col + px_) / YOLO_GRID;
+        const cy = (row + py_) / YOLO_GRID;
+        const w  = Math.exp(pw) * aw;
+        const h  = Math.exp(ph) * ah;
+
+        let bestCls = 0, bestScore = -Infinity;
+        for (let c = 0; c < YOLO_CLASSES; c++) {
+          const sc = yoloSigmoid(out[(off + 5 + c) * gs + ci]);
+          if (sc > bestScore) { bestScore = sc; bestCls = c; }
+        }
+
+        boxes.push({ cx, cy, w, h, conf, cls: bestCls, clsName: COCO_CLASSES[bestCls], clsConf: bestScore });
+      }
+    }
+  }
+
+  return yoloNMS(boxes);
+}
+
+function yoloDrawResults(canvas, img, boxes) {
+  canvas.width  = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+
+  const colors = ['#ef4444','#3b82f6','#22c55e','#f59e0b','#a855f7','#ec4899','#14b8a6'];
+  boxes.forEach((box, idx) => {
+    const color = colors[box.cls % colors.length];
+    const x = (box.cx - box.w / 2) * img.naturalWidth;
+    const y = (box.cy - box.h / 2) * img.naturalHeight;
+    const w = box.w * img.naturalWidth;
+    const h = box.h * img.naturalHeight;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(2, img.naturalWidth / 300);
+    ctx.strokeRect(x, y, w, h);
+
+    const label = `${box.clsName} ${(box.conf * 100).toFixed(0)}%`;
+    ctx.font = `bold ${Math.max(12, img.naturalWidth / 50)}px sans-serif`;
+    const tw = ctx.measureText(label).width + 8;
+    const th = Math.max(18, img.naturalWidth / 30);
+    ctx.fillStyle = color;
+    ctx.fillRect(x, Math.max(0, y - th), tw, th);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(label, x + 4, Math.max(th - 4, y - 4));
+  });
+}
+
+function initYoloTryIt(info, session) {
+  const section = document.getElementById('try-it-section');
+  section.style.display = '';
+
+  // Replace the MNIST draw canvas with the YOLO drop-zone UI
+  section.querySelector('.try-it-layout').innerHTML = `
+    <div class="yolo-ui">
+      <label class="yolo-drop-zone" id="yolo-drop-zone">
+        <div class="yolo-drop-icon">&#128247;</div>
+        <div class="yolo-drop-text">Drop an image here or <span class="yolo-browse-link">browse</span></div>
+        ${!session ? '<div class="yolo-no-model">Export model.onnx to enable inference</div>' : ''}
+        <input type="file" id="yolo-file-input" accept="image/*" style="display:none">
+      </label>
+      <div id="yolo-status" class="yolo-status" style="display:none"></div>
+      <div id="yolo-result-wrap" style="display:none">
+        <canvas id="yolo-canvas" class="yolo-canvas"></canvas>
+        <div id="yolo-detections" class="yolo-detections"></div>
+      </div>
+    </div>
+  `;
+
+  if (!session) return;
+
+  const dropZone   = document.getElementById('yolo-drop-zone');
+  const fileInput  = document.getElementById('yolo-file-input');
+  const status     = document.getElementById('yolo-status');
+  const resultWrap = document.getElementById('yolo-result-wrap');
+  const canvas     = document.getElementById('yolo-canvas');
+  const detections = document.getElementById('yolo-detections');
+
+  async function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    status.textContent = 'Running model…';
+    status.style.display = '';
+    resultWrap.style.display = 'none';
+
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = async () => {
+      try {
+        const boxes = await runYoloModel(img, session);
+        yoloDrawResults(canvas, img, boxes);
+
+        if (boxes.length === 0) {
+          detections.innerHTML = '<span class="yolo-none">No detections above threshold — try a clearer photo</span>';
+        } else {
+          detections.innerHTML = boxes.map(b =>
+            `<div class="yolo-chip">
+               <span class="yolo-chip-name">${b.clsName}</span>
+               <span class="yolo-chip-conf">${(b.conf * 100).toFixed(0)}%</span>
+             </div>`
+          ).join('');
+        }
+
+        status.style.display = 'none';
+        resultWrap.style.display = '';
+      } catch (err) {
+        status.textContent = 'Error: ' + err.message;
+        console.error(err);
+      }
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
 }
 
 // ── Pyodide kernel ────────────────────────────────────────────────────────

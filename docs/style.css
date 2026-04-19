@@ -255,6 +255,86 @@ button:active { transform: scale(0.98); }
   flex-shrink: 0;
 }
 
+/* ── YOLO drop-zone try-it ────────────────────────────────────────────────── */
+.yolo-ui {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.yolo-drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 2.5rem 1.5rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: center;
+  user-select: none;
+}
+.yolo-drop-zone:hover, .yolo-drop-zone.drag-over {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.yolo-drop-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+.yolo-drop-text {
+  font-size: 0.88rem;
+  color: #555;
+}
+.yolo-browse-link {
+  color: #2563eb;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.yolo-no-model {
+  font-size: 0.8rem;
+  color: #f59e0b;
+  margin-top: 0.25rem;
+}
+
+.yolo-status {
+  font-size: 0.85rem;
+  color: #888;
+  font-style: italic;
+  text-align: center;
+}
+
+.yolo-canvas {
+  display: block;
+  max-width: 100%;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.yolo-detections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+.yolo-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 99px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.82rem;
+}
+.yolo-chip-name { font-weight: 600; color: #333; }
+.yolo-chip-conf { color: #888; }
+.yolo-none      { font-size: 0.85rem; color: #999; font-style: italic; }
+
 /* ── Notebook container ───────────────────────────────────────────────────── */
 .nb-container {
   background: #fff;

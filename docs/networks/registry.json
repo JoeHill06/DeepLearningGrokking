@@ -14,5 +14,9 @@
   {
     "id": "4-yolo-convolutional-neural-network",
     "path": "networks/4-yolo-convolutional-neural-network/info.json"
+  },
+  {
+    "id": "5-yolo-convolutional-neural-network",
+    "path": "networks/5-yolo-convolutional-neural-network/info.json"
   }
 ]
